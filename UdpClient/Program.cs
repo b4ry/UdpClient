@@ -30,11 +30,12 @@ namespace Client
                     {
                         while (string.IsNullOrWhiteSpace(nickName))
                         {
+                            Console.ForegroundColor = ConsoleColor.White;
                             Console.Write("Provide your nick:");
                             nickName = Console.ReadLine();
                         }
 
-                        sendBytes = Encoding.ASCII.GetBytes("UserRegistration:" + nickName);
+                        sendBytes = Encoding.ASCII.GetBytes("UR:" + nickName);
                         client.Send(sendBytes, sendBytes.Length);
 
                         while (client.Available == 0)
@@ -47,6 +48,7 @@ namespace Client
 
                         if (decodedReceivedData.StartsWith("RegistrationFailed:"))
                         {
+                            Console.ForegroundColor = ConsoleColor.Red;
                             Console.WriteLine(decodedReceivedData);
                             nickName = string.Empty;
                         }
@@ -63,7 +65,13 @@ namespace Client
                         PrepareMessage(out message, out sendBytes);
 
                         client.Send(sendBytes, sendBytes.Length);
+                        Console.ForegroundColor = ConsoleColor.DarkGreen;
                         Console.WriteLine($"Sent: {message}");
+
+                        var receivedData = client.Receive(ref serverIPEndpoint);
+                        var decodedReceivedData = Encoding.ASCII.GetString(receivedData);
+                        Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        Console.WriteLine($"Received: {decodedReceivedData}");
                     }
                 }
                 catch (Exception e)
@@ -75,6 +83,7 @@ namespace Client
 
         private static void PrepareMessage(out string message, out byte[] sendBytes)
         {
+            Console.ForegroundColor = ConsoleColor.White;
             Console.Write(":");
             message = Console.ReadLine();
             sendBytes = Encoding.ASCII.GetBytes(message);
