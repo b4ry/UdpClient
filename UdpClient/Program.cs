@@ -136,12 +136,14 @@ namespace Client
             finally
             {
                 cts.Cancel();
-                cts.Dispose();
                 client.Close();
             }
 
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("Client stopped.");
+
+            cts.Dispose();
+
             Console.ReadKey();
         }
 
