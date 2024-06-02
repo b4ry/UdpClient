@@ -24,10 +24,11 @@ namespace UdpClient
                 { // UDP does not ensure that the data will be received straight away (or ever), so we need to query it in a separate thread
                     while (true)
                     {
-                        // dispose problem on exit
-                        cts.Token.ThrowIfCancellationRequested();
+                        if(cts.Token.IsCancellationRequested)
+                        {
+                            break;
+                        }
 
-                        // dispose problem on exit
                         if (client.Available > 0)
                         {
                             string decodedReceivedData = ReceiveDataProcessor.ReceiveData(client, ref serverIPEndpoint);
@@ -125,6 +126,15 @@ namespace UdpClient
                 finally
                 {
                     cts.Cancel();
+                }
+
+                try
+                {
+                    receivingTask.Wait();
+                }
+                catch (Exception e)
+                {
+                    ConsoleDisplayHelper.DisplayMessageInColor(e.ToString(), ConsoleColor.Red);
                 }
             }
 
