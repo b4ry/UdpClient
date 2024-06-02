@@ -45,6 +45,8 @@
   <ItemGroup>
     <Compile Include="Helpers\ConsoleDisplayHelper.cs" />
     <Compile Include="Helpers\OptionsMenuHelper.cs" />
+    <Compile Include="MessageProcessors\ReceiveDataProcessor.cs" />
+    <Compile Include="MessageProcessors\SendMessageProcessor.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

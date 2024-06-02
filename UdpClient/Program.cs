@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using UdpClient.Helpers;
+using UdpClient.MessageProcessors;
 
 namespace UdpClient
 {
@@ -32,8 +32,7 @@ namespace UdpClient
 
                     if (client.Available > 0)
                     {
-                        var receivedData = client.Receive(ref serverIPEndpoint);
-                        var decodedReceivedData = Encoding.ASCII.GetString(receivedData);
+                        string decodedReceivedData = ReceiveDataProcessor.ReceiveData(client, ref serverIPEndpoint);
 
                         ConsoleDisplayHelper.DisplayMessageInColor($"{decodedReceivedData}", ConsoleColor.DarkYellow);
                     }
@@ -48,8 +47,6 @@ namespace UdpClient
             {
                 client.Connect(serverIPEndpoint); // since it is UDP, the connect DOES NOT establish a session
 
-                byte[] sendBytes;
-
                 string nickName = string.Empty;
                 string message = string.Empty;
 
@@ -62,16 +59,14 @@ namespace UdpClient
                         nickName = Console.ReadLine();
                     }
 
-                    sendBytes = Encoding.ASCII.GetBytes("-ru " + nickName);
-                    client.Send(sendBytes, sendBytes.Length);
+                    SendMessageProcessor.SendMessage(client, "-ru " + nickName);
 
                     while (client.Available == 0) // waiting for registration feedback
                     {
                         continue;
                     }
 
-                    var receivedData = client.Receive(ref serverIPEndpoint);
-                    var decodedReceivedData = Encoding.ASCII.GetString(receivedData);
+                    string decodedReceivedData = ReceiveDataProcessor.ReceiveData(client, ref serverIPEndpoint);
 
                     if (decodedReceivedData.StartsWith("RegistrationFailed:"))
                     {
@@ -102,9 +97,7 @@ namespace UdpClient
                         {
                             case "-lu":
                             case "-dm":
-                                sendBytes = Encoding.ASCII.GetBytes(message);
-                                client.Send(sendBytes, sendBytes.Length);
-
+                                SendMessageProcessor.SendMessage(client, message);
                                 ConsoleDisplayHelper.DisplayMessageInColor($"Sent: {message}", ConsoleColor.DarkGreen);
 
                                 break;
