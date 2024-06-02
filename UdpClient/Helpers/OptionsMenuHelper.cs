@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Client.OptionsMenu
+namespace UdpClient.Helpers
 {
     internal static class OptionsMenuHelper
     {

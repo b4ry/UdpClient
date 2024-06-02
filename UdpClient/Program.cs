@@ -1,32 +1,31 @@
-﻿using Client.OptionsMenu;
-using System;
+﻿using System;
 using System.Net;
-using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using UdpClient.Helpers;
 
-namespace Client
+namespace UdpClient
 {
     internal class Program
     {
-        private const string _pattern = @"^-\S+";
+        private const string _userInputPattern = @"^-\S+";
 
         static void Main(string[] args)
         {
-            UdpClient client = new UdpClient();
+            System.Net.Sockets.UdpClient client = new System.Net.Sockets.UdpClient();
 
-            (IPAddress serverIp, int serverPort) = (IPAddress.Parse(args[1].Split('=')[1]), int.Parse(args[0].Split('=')[1]));
+            (IPAddress serverIp, int serverPort) = (IPAddress.Parse(args[0].Split('=')[1]), int.Parse(args[1].Split('=')[1]));
             IPEndPoint serverIPEndpoint = new IPEndPoint(serverIp, serverPort);
 
             CancellationTokenSource cts = new CancellationTokenSource();
 
             Task receivingTask = new Task(() =>
-            { // UDP does not ensure that the data will be received straight away (or ever), so we need to query it
+            { // UDP does not ensure that the data will be received straight away (or ever), so we need to query it in a separate thread
                 while (true)
                 {
-                    if(cts.Token.IsCancellationRequested)
+                    if (cts.Token.IsCancellationRequested)
                     {
                         break;
                     }
@@ -35,8 +34,8 @@ namespace Client
                     {
                         var receivedData = client.Receive(ref serverIPEndpoint);
                         var decodedReceivedData = Encoding.ASCII.GetString(receivedData);
-                        Console.ForegroundColor = ConsoleColor.DarkYellow;
-                        Console.WriteLine($"{decodedReceivedData}");
+
+                        ConsoleDisplayHelper.DisplayMessageInColor($"{decodedReceivedData}", ConsoleColor.DarkYellow);
                     }
 
                     Task.Delay(2000);
@@ -58,15 +57,15 @@ namespace Client
                 {
                     while (string.IsNullOrWhiteSpace(nickName))
                     {
-                        Console.ForegroundColor = ConsoleColor.White;
-                        Console.Write("Provide your nick:");
+                        ConsoleDisplayHelper.DisplayMessageInColor("Provide your nick: ", ConsoleColor.White);
+
                         nickName = Console.ReadLine();
                     }
 
                     sendBytes = Encoding.ASCII.GetBytes("-ru " + nickName);
                     client.Send(sendBytes, sendBytes.Length);
 
-                    while (client.Available == 0)
+                    while (client.Available == 0) // waiting for registration feedback
                     {
                         continue;
                     }
@@ -76,8 +75,8 @@ namespace Client
 
                     if (decodedReceivedData.StartsWith("RegistrationFailed:"))
                     {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine(decodedReceivedData);
+                        ConsoleDisplayHelper.DisplayMessageInColor(decodedReceivedData, ConsoleColor.Red);
+
                         nickName = string.Empty;
                     }
                     else
@@ -87,15 +86,15 @@ namespace Client
                 }
 
                 Console.WriteLine($"Registered as: {nickName}, IP {client.Client.LocalEndPoint}");
-
                 OptionsMenuHelper.DisplayOptionsMenu();
 
                 receivingTask.Start();
 
                 while (message != "-q")
                 {
-                    PrepareMessage(out message, out sendBytes);
-                    Match match = Regex.Match(message, _pattern);
+                    Console.ForegroundColor = ConsoleColor.White;
+                    message = Console.ReadLine();
+                    Match match = Regex.Match(message, _userInputPattern);
 
                     if (match.Success)
                     {
@@ -103,9 +102,10 @@ namespace Client
                         {
                             case "-lu":
                             case "-dm":
+                                sendBytes = Encoding.ASCII.GetBytes(message);
                                 client.Send(sendBytes, sendBytes.Length);
-                                Console.ForegroundColor = ConsoleColor.DarkGreen;
-                                Console.WriteLine($"Sent: {message}");
+
+                                ConsoleDisplayHelper.DisplayMessageInColor($"Sent: {message}", ConsoleColor.DarkGreen);
 
                                 break;
                             case "-o":
@@ -115,23 +115,21 @@ namespace Client
                             case "-q":
                                 break;
                             default:
-                                Console.ForegroundColor = ConsoleColor.DarkMagenta;
-                                Console.WriteLine($"Unrecognized option!");
+                                ConsoleDisplayHelper.DisplayMessageInColor($"Unrecognized option: {match.Value}!", ConsoleColor.DarkMagenta);
 
                                 break;
                         }
                     }
                     else
                     {
-                        Console.ForegroundColor = ConsoleColor.DarkMagenta;
-                        Console.WriteLine($"Unrecognized option!");
+                        ConsoleDisplayHelper.DisplayMessageInColor($"Message has to start with `-` followed by one of the options: {message}!",
+                            ConsoleColor.DarkMagenta);
                     }
                 }
             }
             catch (Exception e)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(e.ToString());
+                ConsoleDisplayHelper.DisplayMessageInColor(e.ToString(), ConsoleColor.Red);
             }
             finally
             {
@@ -139,19 +137,11 @@ namespace Client
                 client.Close();
             }
 
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("Client stopped.");
+            ConsoleDisplayHelper.DisplayMessageInColor("Client stopped.", ConsoleColor.White);
 
             cts.Dispose();
 
             Console.ReadKey();
-        }
-
-        private static void PrepareMessage(out string message, out byte[] sendBytes)
-        {
-            Console.ForegroundColor = ConsoleColor.White;
-            message = Console.ReadLine();
-            sendBytes = Encoding.ASCII.GetBytes(message);
         }
     }
 }
